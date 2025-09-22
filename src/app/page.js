@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { TrendingUp, MessageSquare, Settings, BarChart3, Users, Eye, Heart, Share2, Hash, Calendar, Filter, Download, RefreshCw } from "lucide-react";
+import { TrendingUp, MessageSquare, Settings, BarChart3, Users, Eye, Heart, Share2 } from "lucide-react";
 
 export default function Home() {
   const [trending, setTrending] = useState(null);
@@ -56,229 +56,151 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Header */}
-      <header className="border-b border-gray-300 bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 bg-blue-600 rounded flex items-center justify-center">
-                <BarChart3 className="w-5 h-5 text-white" />
-              </div>
-              <h1 className="text-xl font-semibold text-gray-800">
-                Social Analytics Pro
-              </h1>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors">
-                <Filter className="w-4 h-4" />
-              </button>
-              <button className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors">
-                <Download className="w-4 h-4" />
-              </button>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
+    <div style={{backgroundColor: '#f5f5f5', minHeight: '100vh', fontFamily: 'Arial, sans-serif'}}>
+      {/* Simple Header */}
+      <div style={{backgroundColor: 'white', borderBottom: '1px solid #ddd', padding: '15px 20px'}}>
+        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+          <BarChart3 size={24} color="#333" />
+          <h1 style={{margin: 0, fontSize: '20px', color: '#333'}}>Social Analytics Dashboard</h1>
+        </div>
+      </div>
+
+      <div style={{padding: '20px', maxWidth: '1200px', margin: '0 auto'}}>
+        
+        {/* Stats Section */}
+        <div style={{marginBottom: '25px'}}>
+          <h2 style={{color: '#333', fontSize: '18px', marginBottom: '10px'}}>Stats Overview</h2>
+          <div style={{backgroundColor: 'white', border: '1px solid #ccc', padding: '15px'}}>
+            <div style={{display: 'flex', justifyContent: 'space-around', flexWrap: 'wrap', gap: '20px'}}>
+              {mockStats.map((stat, index) => (
+                <div key={index} style={{textAlign: 'center', minWidth: '120px'}}>
+                  <div style={{color: '#666', fontSize: '13px', marginBottom: '5px'}}>{stat.label}</div>
+                  <div style={{fontSize: '22px', fontWeight: 'bold', color: '#333', marginBottom: '3px'}}>{stat.value}</div>
+                  <div style={{color: '#28a745', fontSize: '12px'}}>{stat.change}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-6">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {mockStats.map((stat, index) => (
-            <div key={index} className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-gray-500 text-sm">{stat.label}</p>
-                  <p className="text-2xl font-semibold text-gray-900 mt-1">{stat.value}</p>
-                  <p className="text-emerald-600 text-sm mt-1 flex items-center">
-                    <TrendingUp className="w-3 h-3 mr-1" />
-                    {stat.change}
-                  </p>
-                </div>
-                <div className="w-11 h-11 bg-blue-50 rounded-lg flex items-center justify-center">
-                  <stat.icon className="w-5 h-5 text-blue-600" />
-                </div>
+        <div style={{display: 'flex', gap: '25px'}}>
+          
+          {/* Left Column */}
+          <div style={{flex: '1'}}>
+            {/* Trending Hashtags */}
+            <div style={{marginBottom: '25px'}}>
+              <h2 style={{color: '#333', fontSize: '18px', marginBottom: '10px'}}>
+                Trending Hashtags
+              </h2>
+              <div style={{backgroundColor: 'white', border: '1px solid #ddd', padding: '15px'}}>
+                {isLoading ? (
+                  <div>Loading trending data...</div>
+                ) : (
+                  <>
+                    <table style={{width: '100%', borderCollapse: 'collapse'}}>
+                      <thead>
+                        <tr style={{borderBottom: '1px solid #eee'}}>
+                          <th style={{textAlign: 'left', padding: '8px', color: '#666', fontSize: '14px'}}>#</th>
+                          <th style={{textAlign: 'left', padding: '8px', color: '#666', fontSize: '14px'}}>Hashtag</th>
+                          <th style={{textAlign: 'right', padding: '8px', color: '#666', fontSize: '14px'}}>Count</th>
+                          <th style={{textAlign: 'right', padding: '8px', color: '#666', fontSize: '14px'}}>Growth</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mockTrendingData.map((item, index) => (
+                          <tr key={index} style={{borderBottom: '1px solid #f5f5f5'}}>
+                            <td style={{padding: '10px 8px', fontSize: '14px'}}>{index + 1}</td>
+                            <td style={{padding: '10px 8px', fontSize: '14px', fontWeight: '500'}}>{item.hashtag}</td>
+                            <td style={{padding: '10px 8px', fontSize: '14px', textAlign: 'right'}}>{item.count.toLocaleString()}</td>
+                            <td style={{padding: '10px 8px', fontSize: '14px', textAlign: 'right', color: '#28a745'}}>{item.growth}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    
+                    {trending && (
+                      <details style={{marginTop: '15px', padding: '10px', backgroundColor: '#f8f9fa', border: '1px solid #e9ecef'}}>
+                        <summary style={{cursor: 'pointer', fontSize: '14px', color: '#666'}}>API Response Data</summary>
+                        <pre style={{fontSize: '12px', color: '#333', marginTop: '10px', overflow: 'auto'}}>
+                          {JSON.stringify(trending, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </>
+                )}
               </div>
             </div>
-          ))}
-        </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-          {/* Trending Hashtags */}
-          <div className="xl:col-span-2">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-9 h-9 bg-orange-500 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-white" />
-                    </div>
-                    <div>
-                      <h2 className="text-lg font-medium text-gray-900">Trending Hashtags</h2>
-                      <p className="text-gray-500 text-sm">Real-time hashtag performance</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2 text-xs text-gray-400">
-                    <Calendar className="w-4 h-4" />
-                    <span>Last 24h</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-5">
+            {/* Text Processing */}
+            <div>
+              <h3 style={{color: '#333', fontSize: '16px', marginBottom: '10px'}}>
+                Text Processing Engine
+              </h3>
+              <div style={{backgroundColor: 'white', border: '1px solid #ddd', padding: '15px'}}>
                 {isLoading ? (
-                  <div className="space-y-3">
-                    {[...Array(5)].map((_, i) => (
-                      <div key={i} className="animate-pulse">
-                        <div className="flex items-center justify-between p-3 bg-gray-100 rounded">
-                          <div className="flex items-center space-x-3">
-                            <div className="w-7 h-7 bg-gray-300 rounded-full"></div>
-                            <div className="h-4 bg-gray-300 rounded w-20"></div>
-                          </div>
-                          <div className="h-4 bg-gray-300 rounded w-16"></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <div>Loading processing data...</div>
                 ) : (
-                  <div className="space-y-2">
-                    {mockTrendingData.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 hover:bg-blue-50 rounded border border-gray-100 transition-colors">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-7 h-7 bg-blue-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                            {index + 1}
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Hash className="w-4 h-4 text-blue-500" />
-                            <span className="text-gray-900 font-medium">{item.hashtag}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-gray-900 font-medium">{item.count.toLocaleString()}</p>
-                          <p className="text-emerald-600 text-sm">{item.growth}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {trending && !isLoading && (
-                  <div className="mt-4 p-3 bg-gray-100 rounded border">
-                    <h4 className="text-gray-900 font-medium mb-2">API Response:</h4>
-                    <pre className="text-xs text-gray-600 overflow-auto max-h-32">
-                      {JSON.stringify(trending, null, 2)}
-                    </pre>
-                  </div>
+                  <>
+                    <p style={{margin: '0 0 10px 0', fontSize: '14px'}}>
+                      <strong>Status:</strong> <span style={{backgroundColor: '#d4edda', color: '#155724', padding: '2px 6px', fontSize: '12px'}}>Active</span>
+                    </p>
+                    <p style={{margin: '0 0 10px 0', fontSize: '14px'}}>
+                      <strong>Items Processed:</strong> 1,247
+                    </p>
+                    <p style={{margin: '0 0 10px 0', fontSize: '14px'}}>
+                      <strong>Current Accuracy:</strong> <span style={{color: '#007bff', fontWeight: 'bold'}}>94.2%</span>
+                    </p>
+                    
+                    {preprocess && (
+                      <details style={{marginTop: '10px', fontSize: '12px'}}>
+                        <summary style={{cursor: 'pointer', color: '#666'}}>View API Data</summary>
+                        <pre style={{fontSize: '11px', marginTop: '5px', overflow: 'auto', maxHeight: '100px', backgroundColor: '#f8f9fa', padding: '8px'}}>
+                          {JSON.stringify(preprocess, null, 2)}
+                        </pre>
+                      </details>
+                    )}
+                  </>
                 )}
               </div>
             </div>
           </div>
 
           {/* Right Column */}
-          <div className="space-y-6">
+          <div style={{width: '300px'}}>
             {/* Comment Analysis */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-gray-200 bg-gray-50">
-                <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 bg-teal-500 rounded-lg flex items-center justify-center">
-                    <MessageSquare className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">Comment Analysis</h3>
-                    <p className="text-gray-500 text-sm">Sentiment & engagement metrics</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-5">
+            <div>
+              <h3 style={{color: '#333', fontSize: '16px', marginBottom: '10px'}}>
+                Comment Sentiment Analysis
+              </h3>
+              <div style={{backgroundColor: 'white', border: '1px solid #ddd', padding: '15px'}}>
                 {isLoading ? (
-                  <div className="animate-pulse space-y-3">
-                    <div className="h-3 bg-gray-300 rounded"></div>
-                    <div className="h-3 bg-gray-300 rounded w-3/4"></div>
-                    <div className="h-3 bg-gray-300 rounded w-1/2"></div>
-                  </div>
+                  <div>Loading comments...</div>
                 ) : (
                   <>
-                    <div className="space-y-4 mb-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Positive</span>
-                        <span className="text-emerald-600 font-medium">72%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-emerald-500 h-2 rounded-full" style={{width: '72%'}}></div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Neutral</span>
-                        <span className="text-blue-600 font-medium">21%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-blue-500 h-2 rounded-full" style={{width: '21%'}}></div>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Negative</span>
-                        <span className="text-red-500 font-medium">7%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-red-500 h-2 rounded-full" style={{width: '7%'}}></div>
-                      </div>
+                    <div style={{marginBottom: '15px'}}>
+                      <p style={{margin: '0 0 8px 0', fontSize: '14px'}}>
+                        <span style={{color: '#28a745', fontWeight: 'bold'}}>Positive:</span> 72% (1,854 comments)
+                      </p>
+                      <p style={{margin: '0 0 8px 0', fontSize: '14px'}}>
+                        <span style={{color: '#007bff', fontWeight: 'bold'}}>Neutral:</span> 21% (539 comments)
+                      </p>
+                      <p style={{margin: '0 0 8px 0', fontSize: '14px'}}>
+                        <span style={{color: '#dc3545', fontWeight: 'bold'}}>Negative:</span> 7% (179 comments)
+                      </p>
                     </div>
+                    
+                    <div style={{fontSize: '13px', color: '#666', borderTop: '1px solid #eee', paddingTop: '10px'}}>
+                      <p style={{margin: '0 0 5px 0'}}>Total Comments: 2,572</p>
+                      <p style={{margin: '0 0 5px 0'}}>Analysis Updated: 2 min ago</p>
+                    </div>
+                    
                     {comments && (
-                      <div className="mt-4 p-3 bg-gray-100 rounded border">
-                        <pre className="text-xs text-gray-600 overflow-auto max-h-28">
+                      <details style={{marginTop: '10px', fontSize: '12px'}}>
+                        <summary style={{cursor: 'pointer', color: '#666'}}>Raw API Response</summary>
+                        <pre style={{fontSize: '11px', marginTop: '5px', overflow: 'auto', maxHeight: '100px', backgroundColor: '#f8f9fa', padding: '8px'}}>
                           {JSON.stringify(comments, null, 2)}
                         </pre>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Preprocessing Engine */}
-            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-              <div className="p-5 border-b border-gray-200 bg-gray-50">
-                <div className="flex items-center space-x-3">
-                  <div className="w-9 h-9 bg-purple-600 rounded-lg flex items-center justify-center">
-                    <Settings className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">Preprocessing Engine</h3>
-                    <p className="text-gray-500 text-sm">Text analysis & cleaning</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-5">
-                {isLoading ? (
-                  <div className="animate-pulse space-y-3">
-                    <div className="h-3 bg-gray-300 rounded"></div>
-                    <div className="h-3 bg-gray-300 rounded w-5/6"></div>
-                    <div className="h-3 bg-gray-300 rounded w-2/3"></div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="space-y-3 mb-4">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Status</span>
-                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded text-xs font-medium">Active</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Processed</span>
-                        <span className="text-gray-900">1,247 items</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Accuracy</span>
-                        <span className="text-blue-600">94.2%</span>
-                      </div>
-                    </div>
-                    {preprocess && (
-                      <div className="p-3 bg-gray-100 rounded border">
-                        <pre className="text-xs text-gray-600 overflow-auto max-h-28">
-                          {JSON.stringify(preprocess, null, 2)}
-                        </pre>
-                      </div>
+                      </details>
                     )}
                   </>
                 )}
@@ -286,7 +208,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
