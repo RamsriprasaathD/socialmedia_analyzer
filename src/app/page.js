@@ -35,8 +35,8 @@ export default function Home() {
     // Fetch initially
     fetchRedditData();
 
-    // Fetch every second (1000ms)
-    const interval = setInterval(fetchRedditData, 10000);
+    // Fetch every second
+    const interval = setInterval(fetchRedditData, 6000000);
 
     // Cleanup on unmount
     return () => clearInterval(interval);
