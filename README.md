@@ -112,9 +112,8 @@ Trending Hashtags Section
 
 🚀 Getting Started
 1. Clone Repo
-git clone https://github.com/your-username/reddit-analytics-dashboard.git
-cd reddit-analytics-dashboard
-
+git clone https://github.com/RamsriprasaathD/socialmedia_analyzer
+cd social-analytics
 2. Install Dependencies
 npm install
 
