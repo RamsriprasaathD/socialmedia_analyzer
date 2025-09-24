@@ -137,6 +137,11 @@ App will be live at http://localhost:3000
 
 ✅ Custom date ranges
 
+
+Limitations:
+1. API USAGE
+2. API FETCH - 20 posts per fetch
+3. Maintainance of .env file safely
 👨‍💻 Author
 
 Developed by Ramsriprasaath D
