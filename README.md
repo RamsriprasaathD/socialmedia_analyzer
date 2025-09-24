@@ -1,109 +1,148 @@
-Social Analytics Dashboard
-Overview
+📊 Reddit Analytics Dashboard
 
-The Social Analytics Dashboard is a web app built with Next.js and React that shows live Reddit posts and trending hashtags. It updates automatically to keep the dashboard fresh and informative.
+A modern Next.js-powered dashboard that fetches Reddit posts, analyzes them, and presents insights with clean UI components.
 
-Application Flow
+🚀 Features
 
-User opens the dashboard
+🔄 Fetch Reddit Posts via API route (/api/reddit)
 
-The frontend loads the layout and styling.
+📈 Metrics Calculation:
 
-Dashboard requests Reddit data
+Total posts count
 
-The client calls the /api/reddit API route.
+Total upvotes
 
-API fetches Reddit posts
+Average score
 
-The backend uses Reddit OAuth to get an access token.
+Unique active authors
 
-It then fetches the top posts from a chosen subreddit (e.g., news).
+📝 Post Table: Displays latest Reddit posts (title, score, author)
 
-Hashtags are extracted
+🔥 Trending Hashtags: Extracts and counts hashtags from post titles
 
-The backend scans post titles and finds the most common words (pseudo-hashtags).
+⚡ Auto Refresh: Fetches new posts every 10 minutes
 
-Data is returned to the frontend
+🎨 Modern UI: Dark theme with responsive design
 
-Posts and trending hashtags are sent as JSON to the client.
+🛠️ Tech Stack
 
-Frontend displays data
+Frontend: Next.js, React, Tailwind CSS (inline styling here)
 
-Posts are shown in a table with title, author, and upvotes.
+Backend API: Next.js API Routes (/api/reddit)
 
-Trending hashtags are listed.
+Icons: lucide-react
 
-Stats like reach, engagement, and followers are displayed (mock data).
+Data Processing: JavaScript (HashMaps, Array methods, recursion for extraction)
 
-Real-time updates
+📂 Project Structure
+/src
+  /app
+    page.js        # Main dashboard UI
+  /pages/api
+    reddit.js      # API to fetch Reddit posts
 
-The dashboard automatically calls the API every second to fetch fresh posts and hashtags.
+⚙️ How It Works
+1️⃣ Data Fetching
 
-The table and hashtag list update automatically without page reload.
+The client (page.js) calls /api/reddit.
 
-Key Components
+API fetches posts from Reddit (r/news/hot.json).
 
-Frontend (React + Next.js)
+Data is normalized into { title, score, author }.
 
-Handles UI, periodic updates, and displaying posts/hashtags.
+2️⃣ Dashboard Metrics Calculation
 
-API Route (/api/reddit)
+Located in calculateStats():
 
-Talks to Reddit using OAuth.
+Total Posts → posts.length
 
-Formats posts and extracts hashtags.
+Total Upvotes → reduce() over all post scores
 
-Reddit Fetcher (redditFetcher.js)
+Avg. Score → totalUpvotes / totalPosts
 
-Handles authentication, fetching posts, and hashtag extraction logic.
+Active Authors → Unique authors via Set()
 
-Environment Variables
+📌 All metrics use the full posts array, not just displayed posts.
 
-Store Reddit credentials (CLIENT_ID, CLIENT_SECRET, USER_AGENT).
+3️⃣ Displaying Posts
 
+UI shows only first 20 posts:
 
-
-
-
-
-
+posts.slice(0, 20).map(...)
 
 
+Even if 100 posts are fetched, the table limits display to 20.
+
+4️⃣ Trending Hashtags
+
+Extracted from post titles using a HashMap (object).
+
+Example:
+
+hashtags[word] = (hashtags[word] || 0) + 1;
 
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+Sorted by frequency and top 8 displayed.
 
-## Getting Started
+5️⃣ Recursion
 
-First, run the development server:
+Used to safely extract nested JSON from Reddit API without breaking when fields are missing.
 
-```bash
+🧠 Caching & Fault Tolerance
+
+Caching: Posts and hashtags are stored in React state (useState). Refresh happens every 10 minutes.
+
+Fault Tolerance:
+
+If fetch fails → shows "No posts available".
+
+Invalid API response → falls back to empty array.
+
+try/catch prevents app crashes.
+
+📸 Screenshots
+
+Dashboard Metrics (Total Posts, Upvotes, Avg. Score, Authors)
+
+Latest Posts Table (20 rows)
+
+Trending Hashtags Section
+
+(Add screenshots here for clarity)
+
+🚀 Getting Started
+1. Clone Repo
+git clone https://github.com/your-username/reddit-analytics-dashboard.git
+cd reddit-analytics-dashboard
+
+2. Install Dependencies
+npm install
+
+3. Run Locally
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+App will be live at http://localhost:3000
+.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+📌 Future Improvements
 
-## Learn More
+✅ Sentiment Analysis of posts
 
-To learn more about Next.js, take a look at the following resources:
+✅ Real-time notifications
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+✅ Export data (CSV/Excel)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+✅ Advanced filtering & search
 
-## Deploy on Vercel
+✅ Custom date ranges
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+👨‍💻 Author
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Developed by Ramsriprasaath D
+
+
+Output Screen:
+<img width="1874" height="868" alt="image" src="https://github.com/user-attachments/assets/a8150aab-ce40-49d4-b691-635fd0f912a5" />
+
+
