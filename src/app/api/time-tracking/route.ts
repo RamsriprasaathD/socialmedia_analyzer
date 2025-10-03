@@ -33,12 +33,12 @@ export async function POST(request: NextRequest) {
         console.log('Created new user:', user);
       }
 
-      // Create time stamp record with time_in
+      // Create time stamp record with time_in only
       const timeStamp = await prisma.timeStamp.create({
         data: {
           user_id: user.id,
           time_in: new Date(),
-          time_out: new Date(), // We'll update this later when user logs out
+          // time_out and duration will be null initially
         }
       });
 
@@ -63,11 +63,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Find the most recent timestamp without a proper time_out
-      // (where time_out equals time_in, meaning it was just created)
+      // Find the most recent timestamp without a time_out
       const recentTimeStamp = await prisma.timeStamp.findFirst({
         where: {
           user_id: user.id,
+          time_out: null  // Find entries where time_out hasn't been set
         },
         orderBy: {
           time_in: 'desc'
@@ -75,19 +75,27 @@ export async function POST(request: NextRequest) {
       });
 
       if (recentTimeStamp) {
-        // Update the time_out
+        const timeOutDate = new Date();
+        const timeInDate = new Date(recentTimeStamp.time_in);
+        
+        // Calculate duration in seconds
+        const durationInSeconds = Math.floor((timeOutDate.getTime() - timeInDate.getTime()) / 1000);
+
+        // Update the time_out and duration
         const updatedTimeStamp = await prisma.timeStamp.update({
           where: {
             id: recentTimeStamp.id
           },
           data: {
-            time_out: new Date()
+            time_out: timeOutDate,
+            duration: durationInSeconds
           }
         });
 
         return NextResponse.json({
           message: 'Time out recorded successfully',
-          timeStamp: updatedTimeStamp
+          timeStamp: updatedTimeStamp,
+          duration: durationInSeconds
         });
       } else {
         return NextResponse.json(
@@ -108,6 +116,8 @@ export async function POST(request: NextRequest) {
       { error: 'Internal server error' },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
 

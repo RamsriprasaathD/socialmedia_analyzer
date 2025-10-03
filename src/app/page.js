@@ -6,12 +6,12 @@ import {
   BarChart3,
   Users,
   Eye,
-  Heart,
   TrendingUp,
   MessageCircle,
   Award,
   Clock,
   LogOut,
+  Heart,
 } from "lucide-react";
 
 export default function Home() {
@@ -31,6 +31,76 @@ export default function Home() {
       router.push("/login");
     }
   }, [session, status, router]);
+
+  // Record time in when user logs in
+  useEffect(() => {
+    if (session?.user?.email) {
+      recordTimeIn(session.user.email, session.user.name);
+    }
+  }, [session]);
+
+  // Record time in
+  const recordTimeIn = async (email, name) => {
+    try {
+      await fetch('/api/time-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'time_in',
+          email: email,
+          name: name
+        })
+      });
+      console.log('Time in recorded');
+    } catch (error) {
+      console.error('Error recording time in:', error);
+    }
+  };
+
+  // Record time out
+  const recordTimeOut = async (email) => {
+    try {
+      await fetch('/api/time-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'time_out',
+          email: email
+        })
+      });
+      console.log('Time out recorded');
+    } catch (error) {
+      console.error('Error recording time out:', error);
+    }
+  };
+
+  // Handle sign out with time tracking
+  const handleSignOut = async () => {
+    if (session?.user?.email) {
+      await recordTimeOut(session.user.email);
+    }
+    signOut({ callbackUrl: "/login" });
+  };
+
+  // Handle page unload/close with time tracking
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (session?.user?.email) {
+        // Use sendBeacon for reliable delivery on page unload
+        const data = JSON.stringify({
+          action: 'time_out',
+          email: session.user.email
+        });
+        navigator.sendBeacon('/api/time-tracking', data);
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [session]);
 
   // Function to fetch posts from your API
   const fetchRedditData = async () => {
@@ -172,7 +242,7 @@ export default function Home() {
               </h1>
             </div>
             <button
-              onClick={() => signOut({ callbackUrl: "/login" })}
+              onClick={handleSignOut}
               style={{
                 background: "linear-gradient(135deg, #ff6b35, #f7931e)",
                 padding: "8px 16px",
@@ -183,7 +253,16 @@ export default function Home() {
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px"
+                gap: "8px",
+                transition: "all 0.3s ease"
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = "scale(1.05)";
+                e.target.style.boxShadow = "0 4px 12px rgba(255, 107, 53, 0.4)";
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = "scale(1)";
+                e.target.style.boxShadow = "none";
               }}
             >
               <LogOut size={16} />
@@ -225,12 +304,12 @@ export default function Home() {
                         cursor: "pointer"
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.transform = "translateY(-2px)";
-                        e.target.style.boxShadow = `0 8px 25px rgba(${stat.color.slice(1).match(/.{2}/g).map(hex => parseInt(hex, 16)).join(', ')}, 0.3)`;
+                        e.currentTarget.style.transform = "translateY(-2px)";
+                        e.currentTarget.style.boxShadow = `0 8px 25px rgba(${stat.color.slice(1).match(/.{2}/g).map(hex => parseInt(hex, 16)).join(', ')}, 0.3)`;
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.transform = "translateY(0)";
-                        e.target.style.boxShadow = "none";
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "none";
                       }}
                     >
                       <div style={{ 
@@ -328,8 +407,8 @@ export default function Home() {
                                 borderBottom: "1px solid #2d3748",
                                 transition: "background-color 0.2s ease"
                               }}
-                              onMouseEnter={(e) => e.target.parentElement.style.backgroundColor = "rgba(255, 255, 255, 0.03)"}
-                              onMouseLeave={(e) => e.target.parentElement.style.backgroundColor = "transparent"}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.03)"}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                             >
                               <td style={{ padding: "15px 12px", fontSize: "14px", color: "#ff6b35", fontWeight: "600" }}>
                                 {index + 1}
@@ -416,12 +495,12 @@ export default function Home() {
                               transition: "all 0.2s ease"
                             }}
                             onMouseEnter={(e) => {
-                              e.target.style.background = "rgba(255, 107, 53, 0.1)";
-                              e.target.style.borderColor = "#ff6b35";
+                              e.currentTarget.style.background = "rgba(255, 107, 53, 0.1)";
+                              e.currentTarget.style.borderColor = "#ff6b35";
                             }}
                             onMouseLeave={(e) => {
-                              e.target.style.background = "rgba(255, 255, 255, 0.05)";
-                              e.target.style.borderColor = "rgba(255, 255, 255, 0.1)";
+                              e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                             }}
                           >
                             <span style={{ fontSize: "14px", color: "#ffffff" }}>#{tag}</span>
@@ -500,13 +579,4 @@ export default function Home() {
   }
 
   return null;
-}
-
-// Hash icon component
-function Hash({ size, color }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
-      <path d="M4 9h16M4 15h16M10 3L8 21M16 3l-2 18"/>
-    </svg>
-  );
 }
