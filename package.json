@@ -6,9 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "prisma:migrate": "npx prisma migrate dev --name init",
     "prisma:generate": "npx prisma generate",
+    "postinstall": "npx prisma generate",
     "seed": "node prisma/seed.js",
     "demo": "node scripts/run_demo.js"
   },
