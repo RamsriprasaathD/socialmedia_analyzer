@@ -1,26 +1,11 @@
 // app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
-import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { PrismaClient } from "@prisma/client";
-
-import type { Session } from "next-auth";
-
-declare module "next-auth" {
-  interface Session {
-    user: {
-      id: string;
-      name?: string | null;
-      email?: string | null;
-      image?: string | null;
-    };
-  }
-}
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
 const handler = NextAuth({
-  adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -28,18 +13,46 @@ const handler = NextAuth({
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
-
-  session: {
-    strategy: "database", // ensures sessions get stored in Prisma DB
-  },
-
   callbacks: {
-    async session({ session, user }) {
-      // Attach Prisma user id to the session object
-      if (session.user) {
-        session.user.id = user.id;
+    async signIn({ user, account, profile }) {
+      // This callback is called whenever a user signs in
+      if (account?.provider === "google" && user.email) {
+        try {
+          // Check if user exists in our database
+          let dbUser = await prisma.user.findUnique({
+            where: { email: user.email }
+          });
+
+          // Create user if doesn't exist
+          if (!dbUser) {
+            dbUser = await prisma.user.create({
+              data: {
+                email: user.email,
+                name: user.name || user.email,
+              }
+            });
+            console.log('User created during sign in:', dbUser);
+          }
+        } catch (error) {
+          console.error('Error handling user in signIn callback:', error);
+          // Don't prevent sign in even if database operation fails
+        }
       }
+      return true;
+    },
+    async session({ session, token }) {
+      // You can add additional data to the session here if needed
       return session;
+    },
+  },
+  events: {
+    async signIn({ user, account, profile, isNewUser }) {
+      // This event is triggered after successful sign in
+      console.log('User signed in:', user.email);
+    },
+    async signOut({ session, token }) {
+      // This event is triggered when user signs out
+      console.log('User signed out');
     },
   },
 });
