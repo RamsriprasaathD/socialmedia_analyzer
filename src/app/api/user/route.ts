@@ -1,27 +1,21 @@
-import type { NextApiRequest, NextApiResponse } from "next";
-import { PrismaClient, User } from "@prisma/client";
+// src/app/api/user/route.ts
+import { NextResponse } from "next/server";
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-type ResponseData = 
-  | { user: User }
-  | { message: string };
-
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<ResponseData>
-) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ message: "Method not allowed" });
-  }
-
-  const { email, name } = req.body as { email?: string; name?: string };
-
-  if (!email || !name) {
-    return res.status(400).json({ message: "Email and name are required" });
-  }
-
+export async function POST(req: Request) {
   try {
+    const body = await req.json();
+    const { email, name } = body as { email?: string; name?: string };
+
+    if (!email || !name) {
+      return NextResponse.json(
+        { message: "Email and name are required" },
+        { status: 400 }
+      );
+    }
+
     let user = await prisma.user.findUnique({ where: { email } });
 
     if (!user) {
@@ -30,9 +24,12 @@ export default async function handler(
       });
     }
 
-    return res.status(200).json({ user });
+    return NextResponse.json({ user });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({ message: "Internal server error" });
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
