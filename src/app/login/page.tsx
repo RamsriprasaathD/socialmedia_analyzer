@@ -9,7 +9,6 @@ export default function SlotsPage() {
   const { data: session, status } = useSession();
   const timeInRecorded = useRef(false);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isMounted, setIsMounted] = useState(false);
   const [particles] = useState(() => 
     [...Array(20)].map(() => ({
@@ -119,7 +118,12 @@ export default function SlotsPage() {
   // Track mouse position for interactive effects
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
+      // Mouse tracking for future interactive features
+      const x = e.clientX;
+      const y = e.clientY;
+      // Store for potential use
+      void x;
+      void y;
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -258,14 +262,14 @@ export default function SlotsPage() {
 
             <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
               <span className="bg-gradient-to-r from-white via-orange-200 to-orange-400 bg-clip-text text-transparent">
-                Unlock Reddit's
+                Unlock Reddit&apos;s
               </span>
               <br />
               <span className="text-orange-500">Data Insights</span>
             </h2>
 
             <p className="text-gray-400 text-sm sm:text-base md:text-lg leading-relaxed">
-              Dive deep into Reddit's vast ecosystem with powerful analytics tools. Track trending topics, analyze sentiment, and gain actionable insights from millions of conversations happening in real-time.
+              Dive deep into Reddit&apos;s vast ecosystem with powerful analytics tools. Track trending topics, analyze sentiment, and gain actionable insights from millions of conversations happening in real-time.
             </p>
 
             {/* Stats Grid */}
@@ -347,7 +351,7 @@ export default function SlotsPage() {
             Powerful Features
           </h3>
           <p className="text-gray-400 text-center mb-8 md:mb-12 text-sm md:text-base">
-            Everything you need to understand Reddit's pulse
+            Everything you need to understand Reddit&apos;s pulse
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
