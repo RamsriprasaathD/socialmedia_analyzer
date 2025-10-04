@@ -10,6 +10,7 @@ export default function SlotsPage() {
   const timeInRecorded = useRef(false);
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [isMounted, setIsMounted] = useState(false);
   const [particles] = useState(() => 
     [...Array(20)].map(() => ({
       width: Math.random() * 300 + 50,
@@ -20,6 +21,11 @@ export default function SlotsPage() {
       delay: Math.random() * 5
     }))
   );
+
+  // Only render particles after client-side mount
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Function to create user if not exists and record time in
   const recordTimeIn = async (userEmail: string, userName: string) => {
@@ -187,7 +193,7 @@ export default function SlotsPage() {
       {/* Animated background effect */}
       <div className="fixed inset-0 opacity-30">
         <div className="absolute inset-0 bg-gradient-to-br from-orange-600/20 via-transparent to-orange-500/20"></div>
-        {particles.map((particle, i) => (
+        {isMounted && particles.map((particle, i) => (
           <div
             key={i}
             className="absolute rounded-full bg-orange-500/10"
