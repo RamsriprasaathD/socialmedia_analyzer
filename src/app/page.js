@@ -26,7 +26,7 @@ export default function Home() {
 
   // Redirect to login if no session
   useEffect(() => {
-    if (status === "loading") return; // Wait for session to load
+    if (status === "loading") return;
     if (!session) {
       router.push("/login");
     }
@@ -86,7 +86,6 @@ export default function Home() {
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (session?.user?.email) {
-        // Use sendBeacon for reliable delivery on page unload
         const data = JSON.stringify({
           action: 'time_out',
           email: session.user.email
@@ -124,7 +123,7 @@ export default function Home() {
   useEffect(() => {
     if (session) {
       fetchRedditData();
-      const interval = setInterval(fetchRedditData, 10 * 60 * 1000); // 10 minutes
+      const interval = setInterval(fetchRedditData, 10 * 60 * 1000);
       return () => clearInterval(interval);
     }
   }, [session]);
@@ -208,30 +207,40 @@ export default function Home() {
         backgroundColor: "#0f1419", 
         minHeight: "100vh", 
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-        color: "#ffffff"
+        color: "#ffffff",
+        padding: "0 15px"
       }}>
         {/* Header */}
         <div style={{ 
           backgroundColor: "#1a1f29", 
           borderBottom: "1px solid #2d3748", 
-          padding: "20px",
+          padding: "15px",
           boxShadow: "0 2px 10px rgba(0,0,0,0.3)"
         }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: "1200px", margin: "0 auto" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ 
+            display: "flex", 
+            flexDirection: "row",
+            alignItems: "center", 
+            justifyContent: "space-between", 
+            maxWidth: "1200px", 
+            margin: "0 auto",
+            flexWrap: "wrap",
+            gap: "10px"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div style={{
                 background: "linear-gradient(135deg, #ff6b35, #f7931e)",
-                padding: "8px",
-                borderRadius: "10px",
+                padding: "6px",
+                borderRadius: "8px",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center"
               }}>
-                <BarChart3 size={24} color="white" />
+                <BarChart3 size={20} color="white" />
               </div>
               <h1 style={{ 
                 margin: 0, 
-                fontSize: "24px", 
+                fontSize: "20px", 
                 color: "#ffffff",
                 background: "linear-gradient(135deg, #ff6b35, #f7931e)",
                 backgroundClip: "text",
@@ -245,7 +254,7 @@ export default function Home() {
               onClick={handleSignOut}
               style={{
                 background: "linear-gradient(135deg, #ff6b35, #f7931e)",
-                padding: "8px 16px",
+                padding: "8px 14px",
                 borderRadius: "8px",
                 border: "none",
                 color: "#fff",
@@ -253,8 +262,9 @@ export default function Home() {
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
-                transition: "all 0.3s ease"
+                gap: "6px",
+                transition: "all 0.3s ease",
+                fontSize: "14px"
               }}
               onMouseEnter={(e) => {
                 e.target.style.transform = "scale(1.05)";
@@ -265,29 +275,29 @@ export default function Home() {
                 e.target.style.boxShadow = "none";
               }}
             >
-              <LogOut size={16} />
+              <LogOut size={14} />
               Sign Out
             </button>
           </div>
         </div>
-        <div style={{ padding: "25px", maxWidth: "1200px", margin: "0 auto" }}>
+        <div style={{ padding: "20px 0", maxWidth: "1200px", margin: "0 auto" }}>
           {/* Enhanced Stats */}
-          <div style={{ marginBottom: "30px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px" }}>
-              <TrendingUp size={20} color="#ff6b35" />
-              <h2 style={{ color: "#ffffff", fontSize: "20px", margin: 0 }}>Reddit Metrics</h2>
+          <div style={{ marginBottom: "25px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+              <TrendingUp size={18} color="#ff6b35" />
+              <h2 style={{ color: "#ffffff", fontSize: "18px", margin: 0 }}>Reddit Metrics</h2>
             </div>
             <div style={{ 
               background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
               border: "1px solid #4a5568", 
-              borderRadius: "12px",
-              padding: "20px",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.4)"
+              borderRadius: "10px",
+              padding: "15px",
+              boxShadow: "0 4px 15px rgba(0,0,0,0.4)"
             }}>
               <div style={{ 
                 display: "grid", 
-                gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
-                gap: "20px" 
+                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", 
+                gap: "15px" 
               }}>
                 {redditStats.map((stat, index) => {
                   const IconComponent = stat.icon;
@@ -296,8 +306,8 @@ export default function Home() {
                       key={index} 
                       style={{ 
                         background: "rgba(255, 255, 255, 0.05)",
-                        borderRadius: "10px",
-                        padding: "20px",
+                        borderRadius: "8px",
+                        padding: "15px",
                         textAlign: "center",
                         border: "1px solid rgba(255, 255, 255, 0.1)",
                         transition: "all 0.3s ease",
@@ -315,21 +325,21 @@ export default function Home() {
                       <div style={{ 
                         display: "flex", 
                         justifyContent: "center", 
-                        marginBottom: "10px" 
+                        marginBottom: "8px" 
                       }}>
                         <div style={{
                           background: stat.color,
-                          padding: "10px",
+                          padding: "8px",
                           borderRadius: "50%",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center"
                         }}>
-                          <IconComponent size={20} color="white" />
+                          <IconComponent size={18} color="white" />
                         </div>
                       </div>
-                      <div style={{ color: "#a0aec0", fontSize: "14px", marginBottom: "5px" }}>{stat.label}</div>
-                      <div style={{ fontSize: "28px", fontWeight: "bold", color: "#ffffff", marginBottom: "5px" }}>{stat.value}</div>
+                      <div style={{ color: "#a0aec0", fontSize: "13px", marginBottom: "5px" }}>{stat.label}</div>
+                      <div style={{ fontSize: "24px", fontWeight: "bold", color: "#ffffff" }}>{stat.value}</div>
                     </div>
                   );
                 })}
@@ -337,20 +347,24 @@ export default function Home() {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "30px" }}>
-            {/* Left Column */}
-            <div style={{ flex: "1" }}>
+          <div style={{ 
+            display: "flex", 
+            flexDirection: "column",
+            gap: "20px" 
+          }}>
+            {/* Left Column (Posts and Hashtags) */}
+            <div style={{ width: "100%" }}>
               {/* Reddit Posts */}
-              <div style={{ marginBottom: "30px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "15px" }}>
+              <div style={{ marginBottom: "25px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <MessageCircle size={20} color="#ff6b35" />
-                    <h2 style={{ color: "#ffffff", fontSize: "20px", margin: 0 }}>Latest Reddit Posts</h2>
+                    <MessageCircle size={18} color="#ff6b35" />
+                    <h2 style={{ color: "#ffffff", fontSize: "18px", margin: 0 }}>Latest Reddit Posts</h2>
                   </div>
                   {lastFetched && (
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <Clock size={14} color="#a0aec0" />
-                      <p style={{ color: "#a0aec0", fontSize: "13px", margin: 0 }}>
+                      <p style={{ color: "#a0aec0", fontSize: "12px", margin: 0 }}>
                         {formatTimestamp(lastFetched)}
                       </p>
                     </div>
@@ -359,26 +373,27 @@ export default function Home() {
                 <div style={{ 
                   background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
                   border: "1px solid #4a5568", 
-                  borderRadius: "12px",
-                  padding: "20px",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.4)"
+                  borderRadius: "10px",
+                  padding: "15px",
+                  boxShadow: "0 4px 15px rgba(0,0,0,0.4)",
+                  overflowX: "auto"
                 }}>
                   {isLoading ? (
                     <div style={{ 
                       textAlign: "center", 
-                      padding: "40px",
+                      padding: "30px",
                       color: "#a0aec0"
                     }}>
                       <div style={{ 
                         display: "inline-block",
-                        width: "30px",
-                        height: "30px",
+                        width: "24px",
+                        height: "24px",
                         border: "3px solid #4a5568",
                         borderTop: "3px solid #ff6b35",
                         borderRadius: "50%",
                         animation: "spin 1s linear infinite"
                       }}></div>
-                      <div style={{ marginTop: "15px" }}>Loading posts...</div>
+                      <div style={{ marginTop: "10px" }}>Loading posts...</div>
                       <style>{`
                         @keyframes spin {
                           0% { transform: rotate(0deg); }
@@ -387,16 +402,16 @@ export default function Home() {
                       `}</style>
                     </div>
                   ) : posts.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "40px", color: "#a0aec0" }}>No posts available.</div>
+                    <div style={{ textAlign: "center", padding: "30px", color: "#a0aec0" }}>No posts available.</div>
                   ) : (
-                    <div style={{ overflowX: "auto" }}>
+                    <div style={{ minWidth: "600px" }}>
                       <table style={{ width: "100%", borderCollapse: "collapse" }}>
                         <thead>
                           <tr style={{ borderBottom: "2px solid #4a5568" }}>
-                            <th style={{ textAlign: "left", padding: "12px", color: "#a0aec0", fontSize: "14px", fontWeight: "600" }}>#</th>
-                            <th style={{ textAlign: "left", padding: "12px", color: "#a0aec0", fontSize: "14px", fontWeight: "600" }}>Title</th>
-                            <th style={{ textAlign: "right", padding: "12px", color: "#a0aec0", fontSize: "14px", fontWeight: "600" }}>Score</th>
-                            <th style={{ textAlign: "right", padding: "12px", color: "#a0aec0", fontSize: "14px", fontWeight: "600" }}>Author</th>
+                            <th style={{ textAlign: "left", padding: "10px", color: "#a0aec0", fontSize: "13px", fontWeight: "600" }}>#</th>
+                            <th style={{ textAlign: "left", padding: "10px", color: "#a0aec0", fontSize: "13px", fontWeight: "600" }}>Title</th>
+                            <th style={{ textAlign: "right", padding: "10px", color: "#a0aec0", fontSize: "13px", fontWeight: "600" }}>Score</th>
+                            <th style={{ textAlign: "right", padding: "10px", color: "#a0aec0", fontSize: "13px", fontWeight: "600" }}>Author</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -410,10 +425,10 @@ export default function Home() {
                               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.03)"}
                               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                             >
-                              <td style={{ padding: "15px 12px", fontSize: "14px", color: "#ff6b35", fontWeight: "600" }}>
+                              <td style={{ padding: "12px 10px", fontSize: "13px", color: "#ff6b35", fontWeight: "600" }}>
                                 {index + 1}
                               </td>
-                              <td style={{ padding: "15px 12px", fontSize: "14px", fontWeight: "500", color: "#ffffff", maxWidth: "400px" }}>
+                              <td style={{ padding: "12px 10px", fontSize: "13px", fontWeight: "500", color: "#ffffff", maxWidth: "300px" }}>
                                 <div style={{ 
                                   overflow: "hidden", 
                                   textOverflow: "ellipsis", 
@@ -423,8 +438,8 @@ export default function Home() {
                                 </div>
                               </td>
                               <td style={{ 
-                                padding: "15px 12px", 
-                                fontSize: "14px", 
+                                padding: "12px 10px", 
+                                fontSize: "13px", 
                                 textAlign: "right",
                                 color: "#4ecdc4",
                                 fontWeight: "600"
@@ -432,8 +447,8 @@ export default function Home() {
                                 {(post.score ?? post.upvotes ?? 0).toLocaleString()}
                               </td>
                               <td style={{ 
-                                padding: "15px 12px", 
-                                fontSize: "14px", 
+                                padding: "12px 10px", 
+                                fontSize: "13px", 
                                 textAlign: "right", 
                                 color: "#96ceb4"
                               }}>
@@ -450,34 +465,34 @@ export default function Home() {
 
               {/* Trending Hashtags */}
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                   <div style={{ 
-                    width: "20px", 
-                    height: "20px", 
+                    width: "18px", 
+                    height: "18px", 
                     display: "flex", 
                     alignItems: "center", 
                     justifyContent: "center",
                     color: "#ff6b35",
-                    fontSize: "16px",
+                    fontSize: "14px",
                     fontWeight: "bold"
                   }}>
                     #
                   </div>
-                  <h3 style={{ color: "#ffffff", fontSize: "18px", margin: 0 }}>Trending Hashtags</h3>
+                  <h3 style={{ color: "#ffffff", fontSize: "16px", margin: 0 }}>Trending Hashtags</h3>
                 </div>
                 <div style={{ 
                   background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
                   border: "1px solid #4a5568", 
-                  borderRadius: "12px",
-                  padding: "20px",
-                  boxShadow: "0 4px 20px rgba(0,0,0,0.4)"
+                  borderRadius: "10px",
+                  padding: "15px",
+                  boxShadow: "0 4px 15px rgba(0,0,0,0.4)"
                 }}>
                   {isLoading ? (
                     <div style={{ color: "#a0aec0" }}>Loading hashtags...</div>
                   ) : Object.keys(hashtags).length === 0 ? (
                     <div style={{ color: "#a0aec0" }}>No hashtags available.</div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                       {Object.entries(hashtags)
                         .sort((a, b) => b[1] - a[1])
                         .slice(0, 8)
@@ -488,9 +503,9 @@ export default function Home() {
                               display: "flex", 
                               justifyContent: "space-between", 
                               alignItems: "center",
-                              padding: "10px 15px",
+                              padding: "8px 12px",
                               background: "rgba(255, 255, 255, 0.05)",
-                              borderRadius: "8px",
+                              borderRadius: "6px",
                               border: "1px solid rgba(255, 255, 255, 0.1)",
                               transition: "all 0.2s ease"
                             }}
@@ -503,14 +518,14 @@ export default function Home() {
                               e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
                             }}
                           >
-                            <span style={{ fontSize: "14px", color: "#ffffff" }}>#{tag}</span>
+                            <span style={{ fontSize: "13px", color: "#ffffff" }}>#{tag}</span>
                             <span style={{ 
-                              fontSize: "14px", 
+                              fontSize: "13px", 
                               color: "#4ecdc4", 
                               fontWeight: "600",
                               background: "rgba(78, 205, 196, 0.2)",
-                              padding: "4px 8px",
-                              borderRadius: "12px"
+                              padding: "3px 6px",
+                              borderRadius: "10px"
                             }}>
                               {count ?? 0}
                             </span>
@@ -522,22 +537,22 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right Column */}
-            <div style={{ width: "320px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "15px" }}>
-                <Heart size={20} color="#ff6b35" />
-                <h3 style={{ color: "#ffffff", fontSize: "18px", margin: 0 }}>Analytics Insights</h3>
+            {/* Right Column (Analytics Insights) */}
+            <div style={{ width: "100%" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                <Heart size={18} color="#ff6b35" />
+                <h3 style={{ color: "#ffffff", fontSize: "16px", margin: 0 }}>Analytics Insights</h3>
               </div>
               <div style={{ 
                 background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
                 border: "1px solid #4a5568", 
-                borderRadius: "12px",
-                padding: "20px",
-                boxShadow: "0 4px 20px rgba(0,0,0,0.4)"
+                borderRadius: "10px",
+                padding: "15px",
+                boxShadow: "0 4px 15px rgba(0,0,0,0.4)"
               }}>
-                <div style={{ marginBottom: "20px" }}>
-                  <h4 style={{ color: "#4ecdc4", fontSize: "16px", margin: "0 0 10px 0" }}>Coming Soon</h4>
-                  <p style={{ color: "#a0aec0", fontSize: "14px", lineHeight: "1.6", margin: 0 }}>
+                <div style={{ marginBottom: "15px" }}>
+                  <h4 style={{ color: "#4ecdc4", fontSize: "15px", margin: "0 0 8px 0" }}>Coming Soon</h4>
+                  <p style={{ color: "#a0aec0", fontSize: "13px", lineHeight: "1.6", margin: 0 }}>
                     • Sentiment analysis<br/>
                     • Real-time notifications<br/>
                     • Advanced filtering<br/>
@@ -548,8 +563,8 @@ export default function Home() {
                 
                 {posts.length > 0 && (
                   <div>
-                    <h4 style={{ color: "#96ceb4", fontSize: "16px", margin: "0 0 10px 0" }}>Quick Stats</h4>
-                    <div style={{ color: "#a0aec0", fontSize: "13px", lineHeight: "1.8" }}>
+                    <h4 style={{ color: "#96ceb4", fontSize: "15px", margin: "0 0 8px 0" }}>Quick Stats</h4>
+                    <div style={{ color: "#a0aec0", fontSize: "12px", lineHeight: "1.8" }}>
                       <div>Highest scoring post: <span style={{ color: "#4ecdc4", fontWeight: "600" }}>
                         {Math.max(...posts.map(p => p.score ?? p.upvotes ?? 0)).toLocaleString()}
                       </span></div>
@@ -574,6 +589,39 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <style>{`
+          @media (min-width: 768px) {
+            .container {
+              display: flex;
+              flex-direction: row;
+              gap: 30px;
+            }
+            .left-column {
+              flex: 1;
+            }
+            .right-column {
+              width: 320px;
+            }
+            .header {
+              padding: 20px;
+            }
+            .stats-grid {
+              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+            .post-table {
+              min-width: auto;
+            }
+            .dashboard-title {
+              font-size: 24px;
+            }
+            .section-title {
+              font-size: 20px;
+            }
+            .subsection-title {
+              font-size: 18px;
+            }
+          }
+        `}</style>
       </div>
     );
   }
