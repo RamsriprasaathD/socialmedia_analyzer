@@ -186,10 +186,10 @@ export default function SlotsPage() {
   ];
 
   const stats = [
-    { label: "Subreddits Tracked", value: "500+" },
-    { label: "Daily Posts Analyzed", value: "1M+" },
+    { label: "Subreddits Tracked", value: "20" },
+    { label: "Daily Posts Analyzed", value: "500+" },
     { label: "Active Users", value: "10K+" },
-    { label: "Data Points", value: "5B+" }
+    { label: "Data Points", value: "1B+" }
   ];
 
   return (
