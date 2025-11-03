@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -13,10 +13,21 @@ import {
   LogOut,
   Heart,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 export default function Home() {
   const [posts, setPosts] = useState([]);
   const [hashtags, setHashtags] = useState({});
+  const [sentiments, setSentiments] = useState({ positive: 0, negative: 0, neutral: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [lastFetched, setLastFetched] = useState(null);
 
@@ -101,6 +112,36 @@ export default function Home() {
     };
   }, [session]);
 
+  // Simple keyword-based sentiment analysis
+  const computeSentiments = useCallback((postList) => {
+    const positiveWords = [
+      'good', 'great', 'awesome', 'love', 'excellent', 'amazing', 'fantastic', 'wonderful', 'positive', 'happy', 'joy', 'success','victory','safe','recover'
+    ];
+    const negativeWords = [
+      'bad', 'hate', 'terrible', 'awful', 'horrible', 'worst', 'negative', 'sad', 'angry', 'fail', 'disappoint', 'problem', 'sex', 'kill','injured', 'death','Stabbed'
+    ];
+
+    let positive = 0;
+    let negative = 0;
+    let neutral = 0;
+
+    postList.forEach((post) => {
+      const text = (post.title || '').toLowerCase();
+      const posCount = positiveWords.filter((word) => text.includes(word)).length;
+      const negCount = negativeWords.filter((word) => text.includes(word)).length;
+
+      if (posCount > negCount) {
+        positive++;
+      } else if (negCount > posCount) {
+        negative++;
+      } else {
+        neutral++;
+      }
+    });
+
+    setSentiments({ positive, negative, neutral });
+  }, []);
+
   // Function to fetch posts from your API
   const fetchRedditData = async () => {
     setIsLoading(true);
@@ -127,6 +168,25 @@ export default function Home() {
       return () => clearInterval(interval);
     }
   }, [session]);
+
+  // Compute sentiments when posts update
+  useEffect(() => {
+    if (posts.length > 0) {
+      computeSentiments(posts);
+    } else {
+      setSentiments({ positive: 0, negative: 0, neutral: 0 });
+    }
+  }, [posts, computeSentiments]);
+
+  // Prepare chart data
+  const chartData = [
+    {
+      name: 'Sentiments',
+      Positive: sentiments.positive,
+      Negative: sentiments.negative,
+      Neutral: sentiments.neutral,
+    },
+  ];
 
   // Format timestamp nicely
   const formatTimestamp = (date) => {
@@ -351,9 +411,9 @@ export default function Home() {
             display: "flex", 
             flexDirection: "column",
             gap: "20px" 
-          }}>
+          }} className="container">
             {/* Left Column (Posts and Hashtags) */}
-            <div style={{ width: "100%" }}>
+            <div style={{ width: "100%" }} className="left-column">
               {/* Reddit Posts */}
               <div style={{ marginBottom: "25px" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
@@ -538,7 +598,7 @@ export default function Home() {
             </div>
 
             {/* Right Column (Analytics Insights) */}
-            <div style={{ width: "100%" }}>
+            <div style={{ width: "100%" }} className="right-column">
               <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
                 <Heart size={18} color="#ff6b35" />
                 <h3 style={{ color: "#ffffff", fontSize: "16px", margin: 0 }}>Analytics Insights</h3>
@@ -553,7 +613,6 @@ export default function Home() {
                 <div style={{ marginBottom: "15px" }}>
                   <h4 style={{ color: "#4ecdc4", fontSize: "15px", margin: "0 0 8px 0" }}>Coming Soon</h4>
                   <p style={{ color: "#a0aec0", fontSize: "13px", lineHeight: "1.6", margin: 0 }}>
-                    • Sentiment analysis<br/>
                     • Real-time notifications<br/>
                     • Advanced filtering<br/>
                     • Export capabilities<br/>
@@ -585,6 +644,53 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Sentiment Analysis Chart */}
+              <div style={{ marginTop: "20px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+                  <TrendingUp size={18} color="#ff6b35" />
+                  <h3 style={{ color: "#ffffff", fontSize: "16px", margin: 0 }}>Sentiment Analysis Report</h3>
+                </div>
+                <div style={{ 
+                  background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
+                  border: "1px solid #4a5568", 
+                  borderRadius: "10px",
+                  padding: "15px",
+                  boxShadow: "0 4px 15px rgba(0,0,0,0.4)"
+                }}>
+                  {posts.length === 0 ? (
+                    <div style={{ textAlign: "center", padding: "60px", color: "#a0aec0" }}>No data for analysis.</div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" vertical={false} />
+                        <XAxis dataKey="name" stroke="#a0aec0" tick={{ fill: '#a0aec0', fontSize: 12 }} />
+                        <YAxis stroke="#a0aec0" tick={{ fill: '#a0aec0', fontSize: 12 }} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#2d3748', 
+                            border: '1px solid #4a5568', 
+                            color: '#ffffff',
+                            borderRadius: '8px'
+                          }}
+                          labelStyle={{ color: '#ffffff' }}
+                          itemStyle={{ color: '#a0aec0' }}
+                        />
+                        <Legend 
+                          wrapperStyle={{ 
+                            paddingTop: '10px',
+                            color: '#a0aec0',
+                            fontSize: '12px'
+                          }}
+                        />
+                        <Bar dataKey="Positive" fill="#4ecdc4" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Negative" fill="#e74c3c" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Neutral" fill="#95a5a6" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
               </div>
             </div>
           </div>
