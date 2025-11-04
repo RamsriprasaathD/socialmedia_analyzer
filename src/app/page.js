@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import {
@@ -31,131 +31,87 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [lastFetched, setLastFetched] = useState(null);
 
-  // Get session and router
+  // Chatbot states
+  const [showChatbot, setShowChatbot] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [userInput, setUserInput] = useState("");
+  const [isSending, setIsSending] = useState(false);
+  const chatRef = useRef(null);
+
+  // Auth
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Redirect to login if no session
+  // Redirect if not logged in
   useEffect(() => {
     if (status === "loading") return;
-    if (!session) {
-      router.push("/login");
-    }
+    if (!session) router.push("/login");
   }, [session, status, router]);
 
-  // Record time in when user logs in
-  useEffect(() => {
-    if (session?.user?.email) {
-      recordTimeIn(session.user.email, session.user.name);
+  // Record login/out time
+  const recordTime = async (action, email, name = "") => {
+    try {
+      await fetch("/api/time-tracking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, email, name }),
+      });
+    } catch (err) {
+      console.error(err);
     }
+  };
+
+  useEffect(() => {
+    if (session?.user?.email) recordTime("time_in", session.user.email, session.user.name);
+    const handleBeforeUnload = () => {
+      if (session?.user?.email) {
+        navigator.sendBeacon(
+          "/api/time-tracking",
+          JSON.stringify({ action: "time_out", email: session.user.email })
+        );
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [session]);
 
-  // Record time in
-  const recordTimeIn = async (email, name) => {
-    try {
-      await fetch('/api/time-tracking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'time_in',
-          email: email,
-          name: name
-        })
-      });
-      console.log('Time in recorded');
-    } catch (error) {
-      console.error('Error recording time in:', error);
-    }
-  };
-
-  // Record time out
-  const recordTimeOut = async (email) => {
-    try {
-      await fetch('/api/time-tracking', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'time_out',
-          email: email
-        })
-      });
-      console.log('Time out recorded');
-    } catch (error) {
-      console.error('Error recording time out:', error);
-    }
-  };
-
-  // Handle sign out with time tracking
   const handleSignOut = async () => {
-    if (session?.user?.email) {
-      await recordTimeOut(session.user.email);
-    }
+    if (session?.user?.email) await recordTime("time_out", session.user.email);
     signOut({ callbackUrl: "/login" });
   };
 
-  // Handle page unload/close with time tracking
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (session?.user?.email) {
-        const data = JSON.stringify({
-          action: 'time_out',
-          email: session.user.email
-        });
-        navigator.sendBeacon('/api/time-tracking', data);
-      }
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [session]);
-
-  // Simple keyword-based sentiment analysis
+  // Sentiment analysis
   const computeSentiments = useCallback((postList) => {
-    const positiveWords = [
-      'good', 'great', 'awesome', 'love', 'excellent', 'amazing', 'fantastic', 'wonderful', 'positive', 'happy', 'joy', 'success','victory','safe','recover'
-    ];
-    const negativeWords = [
-      'bad', 'hate', 'terrible', 'awful', 'horrible', 'worst', 'negative', 'sad', 'angry', 'fail', 'disappoint', 'problem', 'sex', 'kill','injured', 'death','Stabbed'
-    ];
-
-    let positive = 0;
-    let negative = 0;
-    let neutral = 0;
+    const positiveWords = ["good", "great", "love", "excellent", "positive", "win"];
+    const negativeWords = ["bad", "hate", "terrible", "sad", "fail", "death"];
+    let positive = 0, negative = 0, neutral = 0;
 
     postList.forEach((post) => {
-      const text = (post.title || '').toLowerCase();
-      const posCount = positiveWords.filter((word) => text.includes(word)).length;
-      const negCount = negativeWords.filter((word) => text.includes(word)).length;
-
-      if (posCount > negCount) {
-        positive++;
-      } else if (negCount > posCount) {
-        negative++;
-      } else {
-        neutral++;
-      }
+      const text = (post.title || "").toLowerCase();
+      const pos = positiveWords.filter((w) => text.includes(w)).length;
+      const neg = negativeWords.filter((w) => text.includes(w)).length;
+      if (pos > neg) positive++;
+      else if (neg > pos) negative++;
+      else neutral++;
     });
-
     setSentiments({ positive, negative, neutral });
   }, []);
 
-  // Function to fetch posts from your API
+  // Fetch Reddit data
   const fetchRedditData = async () => {
     setIsLoading(true);
     try {
       const res = await fetch("/api/reddit");
       const data = await res.json();
-
-      setPosts(Array.isArray(data.posts) ? data.posts : []);
-      setHashtags(data.hashtags && typeof data.hashtags === "object" ? data.hashtags : {});
+      const postList = Array.isArray(data.posts)
+        ? data.posts
+        : data?.data?.children?.map((c) => c.data) || [];
+      setPosts(postList);
+      setHashtags(data.hashtags || {});
       setLastFetched(new Date());
-    } catch (error) {
-      console.error("Error fetching Reddit data:", error);
+    } catch (err) {
+      console.error(err);
       setPosts([]);
-      setHashtags({});
     } finally {
       setIsLoading(false);
     }
@@ -169,568 +125,298 @@ export default function Home() {
     }
   }, [session]);
 
-  // Compute sentiments when posts update
   useEffect(() => {
-    if (posts.length > 0) {
-      computeSentiments(posts);
-    } else {
-      setSentiments({ positive: 0, negative: 0, neutral: 0 });
-    }
+    if (posts.length) computeSentiments(posts);
   }, [posts, computeSentiments]);
 
-  // Prepare chart data
-  const chartData = [
+  // 🔹 Chatbot Send - FIXED VERSION
+  const handleSend = async () => {
+    if (!userInput.trim() || isSending) return;
+
+    const userMsg = { sender: "user", text: userInput };
+    setChatMessages((prev) => [...prev, userMsg]);
+    const currentQuestion = userInput;
+    setUserInput("");
+    setIsSending(true);
+
+    try {
+      // Prepare the top 20 posts with all necessary data
+      const newsData = posts.slice(0, 20).map(post => ({
+        title: post.title || "Untitled",
+        score: post.score ?? post.ups ?? 0,
+        author: post.author || "Unknown",
+        url: post.url || "",
+        created: post.created_utc || 0
+      }));
+
+      console.log("📤 Sending to chatbot API:", {
+        question: currentQuestion,
+        postsCount: newsData.length
+      });
+
+      const res = await fetch("/api/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userQuestion: currentQuestion,
+          newsData: newsData,
+        }),
+      });
+
+      console.log("📥 Response status:", res.status);
+
+      const data = await res.json();
+      console.log("📦 Response data:", data);
+
+      if (!res.ok) {
+        // Show the actual error from the server
+        const errorMsg = data.reply || data.error || `HTTP error! status: ${res.status}`;
+        setChatMessages((prev) => [
+          ...prev,
+          { sender: "bot", text: errorMsg },
+        ]);
+        return;
+      }
+
+      const botMsg = { sender: "bot", text: data.reply || "I couldn't generate a response. Please try again." };
+      setChatMessages((prev) => [...prev, botMsg]);
+    } catch (err) {
+      console.error("💥 Chatbot error:", err);
+      const errorMessage = err.message || "Unknown error occurred";
+      setChatMessages((prev) => [
+        ...prev,
+        { sender: "bot", text: `Error: ${errorMessage}. Check browser console for details.` },
+      ]);
+    } finally {
+      setIsSending(false);
+    }
+
+    // Auto-scroll to bottom
+    setTimeout(() => {
+      if (chatRef.current) {
+        chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      }
+    }, 100);
+  };
+
+  const redditStats = [
+    { label: "Total Posts", value: posts.length.toLocaleString(), icon: Eye, color: "#ff6b35" },
     {
-      name: 'Sentiments',
-      Positive: sentiments.positive,
-      Negative: sentiments.negative,
-      Neutral: sentiments.neutral,
+      label: "Total Upvotes",
+      value: posts.reduce((s, p) => s + (p.score ?? p.ups ?? 0), 0).toLocaleString(),
+      icon: TrendingUp,
+      color: "#4ecdc4",
+    },
+    {
+      label: "Avg. Score",
+      value: Math.round(
+        posts.reduce((s, p) => s + (p.score ?? p.ups ?? 0), 0) / (posts.length || 1)
+      ).toLocaleString(),
+      icon: Award,
+      color: "#45b7d1",
+    },
+    {
+      label: "Active Authors",
+      value: new Set(posts.map((p) => p.author).filter(Boolean)).size.toLocaleString(),
+      icon: Users,
+      color: "#96ceb4",
     },
   ];
 
-  // Format timestamp nicely
-  const formatTimestamp = (date) => {
-    if (!date) return "";
-    return new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(date);
-  };
+  const chartData = [
+    { name: "Sentiments", Positive: sentiments.positive, Negative: sentiments.negative, Neutral: sentiments.neutral },
+  ];
+  const formatTimestamp = (d) =>
+    d ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(d) : "";
 
-  // Calculate Reddit-specific stats from posts data
-  const calculateStats = () => {
-    if (!posts || posts.length === 0) {
-      return [
-        { label: "Total Posts", value: "0", icon: Eye, color: "#ff6b35" },
-        { label: "Total Upvotes", value: "0", icon: TrendingUp, color: "#4ecdc4" },
-        { label: "Avg. Score", value: "0", icon: Award, color: "#45b7d1" },
-        { label: "Active Authors", value: "0", icon: Users, color: "#96ceb4" },
-      ];
-    }
-
-    const totalPosts = posts.length;
-    const totalUpvotes = posts.reduce((sum, post) => sum + (post.score ?? post.upvotes ?? 0), 0);
-    const avgScore = totalPosts > 0 ? Math.round(totalUpvotes / totalPosts) : 0;
-    const uniqueAuthors = new Set(posts.map(post => post.author).filter(Boolean)).size;
-
-    return [
-      { label: "Total Posts", value: totalPosts.toLocaleString(), icon: Eye, color: "#ff6b35" },
-      { label: "Total Upvotes", value: totalUpvotes.toLocaleString(), icon: TrendingUp, color: "#4ecdc4" },
-      { label: "Avg. Score", value: avgScore.toLocaleString(), icon: Award, color: "#45b7d1" },
-      { label: "Active Authors", value: uniqueAuthors.toLocaleString(), icon: Users, color: "#96ceb4" },
-    ];
-  };
-
-  const redditStats = calculateStats();
-
-  // Show loading state while checking session
   if (status === "loading") {
     return (
-      <div style={{
-        backgroundColor: "#0f1419",
-        minHeight: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "#fff",
-        fontFamily: "'Inter', sans-serif"
-      }}>
-        <div style={{
-          textAlign: "center",
-          color: "#a0aec0"
-        }}>
-          <div style={{
-            display: "inline-block",
-            width: "30px",
-            height: "30px",
-            border: "3px solid #4a5568",
-            borderTop: "3px solid #ff6b35",
-            borderRadius: "50%",
-            animation: "spin 1s linear infinite"
-          }}></div>
-          <div style={{ marginTop: "15px" }}>Loading...</div>
-          <style>{`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}</style>
+      <div className="min-h-screen bg-[#0f1419] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-t-orange-500 border-gray-600 rounded-full animate-spin"></div>
+          <p className="text-gray-400 mt-4">Loading...</p>
         </div>
       </div>
     );
   }
+  if (!session) return null;
 
-  // If session exists, show dashboard
-  if (session) {
-    return (
-      <div style={{ 
-        backgroundColor: "#0f1419", 
-        minHeight: "100vh", 
-        fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
-        color: "#ffffff",
-        padding: "0 15px"
-      }}>
+  return (
+    <>
+      <div className="min-h-screen bg-[#0f1419] text-white font-sans">
         {/* Header */}
-        <div style={{ 
-          backgroundColor: "#1a1f29", 
-          borderBottom: "1px solid #2d3748", 
-          padding: "15px",
-          boxShadow: "0 2px 10px rgba(0,0,0,0.3)"
-        }}>
-          <div style={{ 
-            display: "flex", 
-            flexDirection: "row",
-            alignItems: "center", 
-            justifyContent: "space-between", 
-            maxWidth: "1200px", 
-            margin: "0 auto",
-            flexWrap: "wrap",
-            gap: "10px"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{
-                background: "linear-gradient(135deg, #ff6b35, #f7931e)",
-                padding: "6px",
-                borderRadius: "8px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center"
-              }}>
-                <BarChart3 size={20} color="white" />
+        <header className="bg-[#1a1f29] border-b border-[#2d3748] shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-2 rounded-lg">
+                <BarChart3 size={20} className="text-white" />
               </div>
-              <h1 style={{ 
-                margin: 0, 
-                fontSize: "20px", 
-                color: "#ffffff",
-                background: "linear-gradient(135deg, #ff6b35, #f7931e)",
-                backgroundClip: "text",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent"
-              }}>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-orange-400 to-orange-500 bg-clip-text text-transparent">
                 Reddit Analytics Dashboard
               </h1>
             </div>
             <button
               onClick={handleSignOut}
-              style={{
-                background: "linear-gradient(135deg, #ff6b35, #f7931e)",
-                padding: "8px 14px",
-                borderRadius: "8px",
-                border: "none",
-                color: "#fff",
-                fontWeight: "bold",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                transition: "all 0.3s ease",
-                fontSize: "14px"
-              }}
-              onMouseEnter={(e) => {
-                e.target.style.transform = "scale(1.05)";
-                e.target.style.boxShadow = "0 4px 12px rgba(255, 107, 53, 0.4)";
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.transform = "scale(1)";
-                e.target.style.boxShadow = "none";
-              }}
+              className="bg-gradient-to-r from-orange-500 to-orange-600 px-4 py-2 rounded-lg font-bold flex items-center gap-2 hover:scale-105 transition"
             >
-              <LogOut size={14} />
-              Sign Out
+              <LogOut size={16} /> Sign Out
             </button>
           </div>
-        </div>
-        <div style={{ padding: "20px 0", maxWidth: "1200px", margin: "0 auto" }}>
-          {/* Enhanced Stats */}
-          <div style={{ marginBottom: "25px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-              <TrendingUp size={18} color="#ff6b35" />
-              <h2 style={{ color: "#ffffff", fontSize: "18px", margin: 0 }}>Reddit Metrics</h2>
+        </header>
+
+        {/* Main Dashboard */}
+        <main className="max-w-7xl mx-auto px-4 py-8">
+          {/* Stats */}
+          <section className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp size={20} className="text-orange-500" />
+              <h2 className="text-xl font-semibold">Reddit Metrics</h2>
             </div>
-            <div style={{ 
-              background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
-              border: "1px solid #4a5568", 
-              borderRadius: "10px",
-              padding: "15px",
-              boxShadow: "0 4px 15px rgba(0,0,0,0.4)"
-            }}>
-              <div style={{ 
-                display: "grid", 
-                gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", 
-                gap: "15px" 
-              }}>
-                {redditStats.map((stat, index) => {
-                  const IconComponent = stat.icon;
-                  return (
-                    <div 
-                      key={index} 
-                      style={{ 
-                        background: "rgba(255, 255, 255, 0.05)",
-                        borderRadius: "8px",
-                        padding: "15px",
-                        textAlign: "center",
-                        border: "1px solid rgba(255, 255, 255, 0.1)",
-                        transition: "all 0.3s ease",
-                        cursor: "pointer"
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = "translateY(-2px)";
-                        e.currentTarget.style.boxShadow = `0 8px 25px rgba(${stat.color.slice(1).match(/.{2}/g).map(hex => parseInt(hex, 16)).join(', ')}, 0.3)`;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = "translateY(0)";
-                        e.currentTarget.style.boxShadow = "none";
-                      }}
-                    >
-                      <div style={{ 
-                        display: "flex", 
-                        justifyContent: "center", 
-                        marginBottom: "8px" 
-                      }}>
-                        <div style={{
-                          background: stat.color,
-                          padding: "8px",
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center"
-                        }}>
-                          <IconComponent size={18} color="white" />
-                        </div>
-                      </div>
-                      <div style={{ color: "#a0aec0", fontSize: "13px", marginBottom: "5px" }}>{stat.label}</div>
-                      <div style={{ fontSize: "24px", fontWeight: "bold", color: "#ffffff" }}>{stat.value}</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {redditStats.map((stat, i) => {
+                const Icon = stat.icon;
+                return (
+                  <div key={i} className="bg-[#1a1f29] border border-[#2d3748] rounded-lg p-4 text-center">
+                    <div className="inline-flex p-3 rounded-full mb-3" style={{ backgroundColor: stat.color }}>
+                      <Icon size={20} className="text-white" />
                     </div>
-                  );
-                })}
+                    <p className="text-gray-400 text-sm">{stat.label}</p>
+                    <p className="text-2xl font-bold">{stat.value}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* Reddit Posts */}
+          <section className="bg-[#1a1f29] border border-[#2d3748] rounded-xl p-6 mb-8">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle size={20} className="text-orange-500" />
+                <h2 className="text-xl font-semibold">Latest Reddit Posts</h2>
               </div>
+              {lastFetched && (
+                <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <Clock size={14} />
+                  <span>{formatTimestamp(lastFetched)}</span>
+                </div>
+              )}
+            </div>
+            {isLoading ? (
+              <p className="text-gray-400 text-center py-8">Loading posts...</p>
+            ) : posts.length === 0 ? (
+              <p className="text-gray-400 text-center py-8">No posts found.</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[#2d3748] text-gray-400">
+                    <th className="p-3 text-left">#</th>
+                    <th className="p-3 text-left">Title</th>
+                    <th className="p-3 text-right">Score</th>
+                    <th className="p-3 text-right">Author</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {posts.slice(0, 20).map((post, i) => (
+                    <tr key={i} className="border-b border-[#2d3748] hover:bg-white/5 transition">
+                      <td className="p-3 text-orange-400">{i + 1}</td>
+                      <td className="p-3 truncate">{post.title}</td>
+                      <td className="p-3 text-right text-cyan-400">{post.score ?? post.ups ?? 0}</td>
+                      <td className="p-3 text-right text-green-400">u/{post.author}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          {/* Sentiment Chart */}
+          <section className="bg-[#1a1f29] border border-[#2d3748] rounded-xl p-6">
+            <h3 className="text-lg font-semibold mb-4 text-orange-500">Sentiment Analysis</h3>
+            {posts.length === 0 ? (
+              <p className="text-gray-400 text-center py-12">No data available</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" />
+                  <XAxis dataKey="name" stroke="#a0aec0" />
+                  <YAxis stroke="#a0aec0" />
+                  <Tooltip contentStyle={{ background: "#2d3748", borderRadius: "8px" }} />
+                  <Legend />
+                  <Bar dataKey="Positive" fill="#4ecdc4" radius={4} />
+                  <Bar dataKey="Negative" fill="#e74c3c" radius={4} />
+                  <Bar dataKey="Neutral" fill="#95a5a6" radius={4} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </section>
+        </main>
+
+        {/* Floating Chatbot Icon */}
+        <div
+          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center cursor-pointer shadow-2xl hover:scale-110 transition z-50"
+          onClick={() => setShowChatbot(true)}
+        >
+          <MessageCircle size={32} className="text-white" />
+        </div>
+
+        {/* Chatbot Popup */}
+        {showChatbot && (
+          <div className="fixed bottom-24 right-6 w-96 h-[520px] bg-[#1a1f29] border border-[#2d3748] rounded-2xl shadow-2xl flex flex-col z-50 overflow-hidden">
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4 flex justify-between items-center">
+              <h3 className="font-bold text-white">Ask Gemini</h3>
+              <button onClick={() => setShowChatbot(false)} className="text-white text-xl hover:bg-white/20 rounded-full w-8 h-8">×</button>
+            </div>
+            <div ref={chatRef} className="flex-1 p-4 overflow-y-auto space-y-3">
+              {chatMessages.length === 0 && (
+                <p className="text-gray-400 text-center">Ask anything about the 20 latest Reddit posts!</p>
+              )}
+              {chatMessages.map((m, i) => (
+                <div key={i} className={`max-w-xs px-4 py-2 rounded-2xl ${m.sender === "user"
+                    ? "bg-orange-500 text-white ml-auto"
+                    : "bg-[#2d3748] text-gray-200"
+                  }`}>
+                  {m.text}
+                </div>
+              ))}
+              {isSending && (
+                <div className="bg-[#2d3748] text-gray-200 px-4 py-2 rounded-2xl max-w-xs">
+                  <span className="inline-block animate-pulse">Thinking...</span>
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-[#2d3748] flex gap-2">
+              <input
+                type="text"
+                placeholder="Type your question..."
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !isSending && handleSend()}
+                disabled={isSending}
+                className="flex-1 bg-[#11141a] text-white px-4 py-2 rounded-lg outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50"
+              />
+              <button
+                onClick={handleSend}
+                disabled={isSending || !userInput.trim()}
+                className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-2 rounded-lg font-bold text-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSending ? "..." : "Send"}
+              </button>
             </div>
           </div>
-
-          <div style={{ 
-            display: "flex", 
-            flexDirection: "column",
-            gap: "20px" 
-          }} className="container">
-            {/* Left Column (Posts and Hashtags) */}
-            <div style={{ width: "100%" }} className="left-column">
-              {/* Reddit Posts */}
-              <div style={{ marginBottom: "25px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "10px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <MessageCircle size={18} color="#ff6b35" />
-                    <h2 style={{ color: "#ffffff", fontSize: "18px", margin: 0 }}>Latest Reddit Posts</h2>
-                  </div>
-                  {lastFetched && (
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <Clock size={14} color="#a0aec0" />
-                      <p style={{ color: "#a0aec0", fontSize: "12px", margin: 0 }}>
-                        {formatTimestamp(lastFetched)}
-                      </p>
-                    </div>
-                  )}
-                </div>
-                <div style={{ 
-                  background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
-                  border: "1px solid #4a5568", 
-                  borderRadius: "10px",
-                  padding: "15px",
-                  boxShadow: "0 4px 15px rgba(0,0,0,0.4)",
-                  overflowX: "auto"
-                }}>
-                  {isLoading ? (
-                    <div style={{ 
-                      textAlign: "center", 
-                      padding: "30px",
-                      color: "#a0aec0"
-                    }}>
-                      <div style={{ 
-                        display: "inline-block",
-                        width: "24px",
-                        height: "24px",
-                        border: "3px solid #4a5568",
-                        borderTop: "3px solid #ff6b35",
-                        borderRadius: "50%",
-                        animation: "spin 1s linear infinite"
-                      }}></div>
-                      <div style={{ marginTop: "10px" }}>Loading posts...</div>
-                      <style>{`
-                        @keyframes spin {
-                          0% { transform: rotate(0deg); }
-                          100% { transform: rotate(360deg); }
-                        }
-                      `}</style>
-                    </div>
-                  ) : posts.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "30px", color: "#a0aec0" }}>No posts available.</div>
-                  ) : (
-                    <div style={{ minWidth: "600px" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                          <tr style={{ borderBottom: "2px solid #4a5568" }}>
-                            <th style={{ textAlign: "left", padding: "10px", color: "#a0aec0", fontSize: "13px", fontWeight: "600" }}>#</th>
-                            <th style={{ textAlign: "left", padding: "10px", color: "#a0aec0", fontSize: "13px", fontWeight: "600" }}>Title</th>
-                            <th style={{ textAlign: "right", padding: "10px", color: "#a0aec0", fontSize: "13px", fontWeight: "600" }}>Score</th>
-                            <th style={{ textAlign: "right", padding: "10px", color: "#a0aec0", fontSize: "13px", fontWeight: "600" }}>Author</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {posts.slice(0, 20).map((post, index) => (
-                            <tr 
-                              key={index} 
-                              style={{ 
-                                borderBottom: "1px solid #2d3748",
-                                transition: "background-color 0.2s ease"
-                              }}
-                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255, 255, 255, 0.03)"}
-                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
-                            >
-                              <td style={{ padding: "12px 10px", fontSize: "13px", color: "#ff6b35", fontWeight: "600" }}>
-                                {index + 1}
-                              </td>
-                              <td style={{ padding: "12px 10px", fontSize: "13px", fontWeight: "500", color: "#ffffff", maxWidth: "300px" }}>
-                                <div style={{ 
-                                  overflow: "hidden", 
-                                  textOverflow: "ellipsis", 
-                                  whiteSpace: "nowrap" 
-                                }}>
-                                  {post.title ?? "Untitled"}
-                                </div>
-                              </td>
-                              <td style={{ 
-                                padding: "12px 10px", 
-                                fontSize: "13px", 
-                                textAlign: "right",
-                                color: "#4ecdc4",
-                                fontWeight: "600"
-                              }}>
-                                {(post.score ?? post.upvotes ?? 0).toLocaleString()}
-                              </td>
-                              <td style={{ 
-                                padding: "12px 10px", 
-                                fontSize: "13px", 
-                                textAlign: "right", 
-                                color: "#96ceb4"
-                              }}>
-                                u/{post.author ?? "unknown"}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Trending Hashtags */}
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                  <div style={{ 
-                    width: "18px", 
-                    height: "18px", 
-                    display: "flex", 
-                    alignItems: "center", 
-                    justifyContent: "center",
-                    color: "#ff6b35",
-                    fontSize: "14px",
-                    fontWeight: "bold"
-                  }}>
-                    #
-                  </div>
-                  <h3 style={{ color: "#ffffff", fontSize: "16px", margin: 0 }}>Trending Hashtags</h3>
-                </div>
-                <div style={{ 
-                  background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
-                  border: "1px solid #4a5568", 
-                  borderRadius: "10px",
-                  padding: "15px",
-                  boxShadow: "0 4px 15px rgba(0,0,0,0.4)"
-                }}>
-                  {isLoading ? (
-                    <div style={{ color: "#a0aec0" }}>Loading hashtags...</div>
-                  ) : Object.keys(hashtags).length === 0 ? (
-                    <div style={{ color: "#a0aec0" }}>No hashtags available.</div>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                      {Object.entries(hashtags)
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 8)
-                        .map(([tag, count], index) => (
-                          <div 
-                            key={index} 
-                            style={{ 
-                              display: "flex", 
-                              justifyContent: "space-between", 
-                              alignItems: "center",
-                              padding: "8px 12px",
-                              background: "rgba(255, 255, 255, 0.05)",
-                              borderRadius: "6px",
-                              border: "1px solid rgba(255, 255, 255, 0.1)",
-                              transition: "all 0.2s ease"
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.background = "rgba(255, 107, 53, 0.1)";
-                              e.currentTarget.style.borderColor = "#ff6b35";
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
-                              e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.1)";
-                            }}
-                          >
-                            <span style={{ fontSize: "13px", color: "#ffffff" }}>#{tag}</span>
-                            <span style={{ 
-                              fontSize: "13px", 
-                              color: "#4ecdc4", 
-                              fontWeight: "600",
-                              background: "rgba(78, 205, 196, 0.2)",
-                              padding: "3px 6px",
-                              borderRadius: "10px"
-                            }}>
-                              {count ?? 0}
-                            </span>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column (Analytics Insights) */}
-            <div style={{ width: "100%" }} className="right-column">
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                <Heart size={18} color="#ff6b35" />
-                <h3 style={{ color: "#ffffff", fontSize: "16px", margin: 0 }}>Analytics Insights</h3>
-              </div>
-              <div style={{ 
-                background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
-                border: "1px solid #4a5568", 
-                borderRadius: "10px",
-                padding: "15px",
-                boxShadow: "0 4px 15px rgba(0,0,0,0.4)"
-              }}>
-                <div style={{ marginBottom: "15px" }}>
-                  <h4 style={{ color: "#4ecdc4", fontSize: "15px", margin: "0 0 8px 0" }}>Coming Soon</h4>
-                  <p style={{ color: "#a0aec0", fontSize: "13px", lineHeight: "1.6", margin: 0 }}>
-                    • Real-time notifications<br/>
-                    • Advanced filtering<br/>
-                    • Export capabilities<br/>
-                    • Custom date ranges
-                  </p>
-                </div>
-                
-                {posts.length > 0 && (
-                  <div>
-                    <h4 style={{ color: "#96ceb4", fontSize: "15px", margin: "0 0 8px 0" }}>Quick Stats</h4>
-                    <div style={{ color: "#a0aec0", fontSize: "12px", lineHeight: "1.8" }}>
-                      <div>Highest scoring post: <span style={{ color: "#4ecdc4", fontWeight: "600" }}>
-                        {Math.max(...posts.map(p => p.score ?? p.upvotes ?? 0)).toLocaleString()}
-                      </span></div>
-                      <div>Most active author: <span style={{ color: "#96ceb4", fontWeight: "600" }}>
-                        {(() => {
-                          const authorCounts = posts.reduce((acc, post) => {
-                            if (post.author) {
-                              acc[post.author] = (acc[post.author] || 0) + 1;
-                            }
-                            return acc;
-                          }, {});
-                          const topAuthor = Object.keys(authorCounts).reduce((a, b) => 
-                            authorCounts[a] > authorCounts[b] ? a : b, 'unknown'
-                          );
-                          return `u/${topAuthor}`;
-                        })()}
-                      </span></div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Sentiment Analysis Chart */}
-              <div style={{ marginTop: "20px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-                  <TrendingUp size={18} color="#ff6b35" />
-                  <h3 style={{ color: "#ffffff", fontSize: "16px", margin: 0 }}>Sentiment Analysis Report</h3>
-                </div>
-                <div style={{ 
-                  background: "linear-gradient(135deg, #1a1f29 0%, #2d3748 100%)", 
-                  border: "1px solid #4a5568", 
-                  borderRadius: "10px",
-                  padding: "15px",
-                  boxShadow: "0 4px 15px rgba(0,0,0,0.4)"
-                }}>
-                  {posts.length === 0 ? (
-                    <div style={{ textAlign: "center", padding: "60px", color: "#a0aec0" }}>No data for analysis.</div>
-                  ) : (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#4a5568" vertical={false} />
-                        <XAxis dataKey="name" stroke="#a0aec0" tick={{ fill: '#a0aec0', fontSize: 12 }} />
-                        <YAxis stroke="#a0aec0" tick={{ fill: '#a0aec0', fontSize: 12 }} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: '#2d3748', 
-                            border: '1px solid #4a5568', 
-                            color: '#ffffff',
-                            borderRadius: '8px'
-                          }}
-                          labelStyle={{ color: '#ffffff' }}
-                          itemStyle={{ color: '#a0aec0' }}
-                        />
-                        <Legend 
-                          wrapperStyle={{ 
-                            paddingTop: '10px',
-                            color: '#a0aec0',
-                            fontSize: '12px'
-                          }}
-                        />
-                        <Bar dataKey="Positive" fill="#4ecdc4" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="Negative" fill="#e74c3c" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="Neutral" fill="#95a5a6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <style>{`
-          @media (min-width: 768px) {
-            .container {
-              display: flex;
-              flex-direction: row;
-              gap: 30px;
-            }
-            .left-column {
-              flex: 1;
-            }
-            .right-column {
-              width: 320px;
-            }
-            .header {
-              padding: 20px;
-            }
-            .stats-grid {
-              grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            }
-            .post-table {
-              min-width: auto;
-            }
-            .dashboard-title {
-              font-size: 24px;
-            }
-            .section-title {
-              font-size: 20px;
-            }
-            .subsection-title {
-              font-size: 18px;
-            }
-          }
-        `}</style>
+        )}
       </div>
-    );
-  }
 
-  return null;
+      <style jsx>{`
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
+    </>
+  );
 }
