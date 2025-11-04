@@ -11,7 +11,6 @@ import {
   Award,
   Clock,
   LogOut,
-  Heart,
 } from "lucide-react";
 import {
   BarChart,

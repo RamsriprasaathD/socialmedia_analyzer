@@ -29,8 +29,8 @@ export async function POST(req: Request) {
     if (!apiKey) {
       console.error("❌ GROQ_API_KEY not found");
       return NextResponse.json(
-        { reply: "Groq API key not configured. Please add GROQ_API_KEY to .env.local" },
-        { status: 500 }
+        { reply: "Chatbot is not configured yet. Please add GROQ_API_KEY environment variable in Vercel settings." },
+        { status: 503 }
       );
     }
 
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     // Construct the prompt with Reddit posts
     const postsSummary = newsData
       .slice(0, 20)
-      .map((post: any, i: number) => 
+      .map((post: { title?: string; author?: string; score?: number }, i: number) => 
         `${i + 1}. "${post.title || "Untitled"}" by u/${post.author || "Unknown"} (Score: ${post.score || 0})`
       )
       .join("\n");
